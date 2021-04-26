@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package service;
+
+import "google/protobuf/duration.proto";
+
+option go_package = "../grpc/api;grpc";
+
+service Statistics {
+  rpc ListStatistics(SubscriptionRequest) returns (stream StatisticsResponse);
+}
+
+message SubscriptionRequest {
+  google.protobuf.Duration period = 1;
+  int64 depth = 2;
+}
+
+message LoadAverage {
+  string oneMin = 1;
+  string fiveMin = 2;
+  string fifteenMin = 3;
+}
+
+message StatisticsResponse {
+  LoadAverage la = 1;
+}

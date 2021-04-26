@@ -1,0 +1,8 @@
+title = "System monitor"
+
+[logger]
+level = "DEBUG"
+
+[collection]
+bufSize = 60
+loadAverage = true
