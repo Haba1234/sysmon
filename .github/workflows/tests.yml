@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - sysmon*
+      - master
 
 env:
   GO111MODULE: "on"
