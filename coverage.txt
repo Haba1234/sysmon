@@ -1,0 +1,10 @@
+mode: atomic
+github.com/Haba1234/sysmon/internal/logger/logger.go:15.57,26.16 4 400
+github.com/Haba1234/sysmon/internal/logger/logger.go:29.2,33.16 4 300
+github.com/Haba1234/sysmon/internal/logger/logger.go:36.2,44.26 3 200
+github.com/Haba1234/sysmon/internal/logger/logger.go:26.16,28.3 1 100
+github.com/Haba1234/sysmon/internal/logger/logger.go:33.16,35.3 1 100
+github.com/Haba1234/sysmon/internal/logger/logger.go:47.34,49.2 1 100
+github.com/Haba1234/sysmon/internal/logger/logger.go:51.34,53.2 1 100
+github.com/Haba1234/sysmon/internal/logger/logger.go:55.35,57.2 1 100
+github.com/Haba1234/sysmon/internal/logger/logger.go:59.40,63.2 1 100
