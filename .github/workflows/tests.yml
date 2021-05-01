@@ -3,7 +3,7 @@ name: sysmonTests
 on:
   push:
     branches:
-      - master
+      - sysmon*
 
 env:
   GO111MODULE: "on"
