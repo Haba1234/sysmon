@@ -2,6 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/Haba1234/sysmon)](https://goreportcard.com/report/github.com/Haba1234/sysmon)
 [![codecov](https://codecov.io/gh/Haba1234/sysmon/branch/master/graph/badge.svg)](https://codecov.io/gh/Haba1234/sysmon)
+![workflow](https://github.com/github/docs/actions/workflows/tests.yml/badge.svg)
 
 Демон - программа, собирающая информацию о системе, на которой запущена, и отправляющая её своим клиентам по gRPC.
 
