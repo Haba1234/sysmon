@@ -12,7 +12,6 @@ env:
 jobs:
   go_get:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, 'sysmon') }}
     steps:
       - name: Extract branch name
         run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
