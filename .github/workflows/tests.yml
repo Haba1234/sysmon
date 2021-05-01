@@ -66,11 +66,11 @@ jobs:
       - name: Generate coverage report
         uses: codecov/codecov-action@v1
         with:
+          token: ${{ c3b4e911-5fa2-420e-bd03-e89da855543a }}
           file: ./coverage.txt
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
-          path_to_write_report: ./coverage/codecov_report.txt
           verbose: true
 
 
