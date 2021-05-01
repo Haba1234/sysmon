@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !contains(github.ref, 'sysmon') }}
     steps:
-      - name: Extract branch name
-        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -29,9 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !contains(github.ref, 'sysmon') }}
     steps:
-      - name: Extract branch name
-        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
       - name: Check out code
         uses: actions/checkout@v2
 
@@ -39,15 +33,11 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.39
-          working-directory: ${{ env.BRANCH }}
 
   tests:
     runs-on: ubuntu-latest
     if: ${{ !contains(github.ref, 'sysmon') }}
     steps:
-      - name: Extract branch name
-        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -60,9 +50,7 @@ jobs:
         run: go mod download
 
       - name: Unit tests
-
         run: go test -v -count=100 -race -timeout=1m ./... -coverprofile=coverage.txt -covermode=atomic
-        working-directory: ${{ env.BRANCH }}
 
       - name: Generate coverage report
         uses: codecov/codecov-action@v1
