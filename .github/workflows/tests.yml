@@ -1,4 +1,4 @@
-name: sysmon tests
+name: tests
 
 on:
   push:
