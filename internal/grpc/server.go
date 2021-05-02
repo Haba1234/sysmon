@@ -15,7 +15,6 @@ import (
 )
 
 //go:generate protoc -I ./api Service.proto --go_out=. --go-grpc_out=.
-//--go-grpc_out=require_unimplemented_servers=false:.
 
 type Server struct {
 	stat.UnimplementedStatisticsServer
@@ -73,7 +72,7 @@ loop:
 			ticker.Stop()
 			break loop
 		case <-ticker.C:
-			result, err := s.service.AverageValue(req.GetDepth())
+			result, err := s.service.AverageValue(int(req.GetDepth()))
 			if err != nil {
 				s.logg.Error(fmt.Sprintf("load average request error: %v", err))
 				return status.Errorf(codes.Internal, "load average request error: %v", err)

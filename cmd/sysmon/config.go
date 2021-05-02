@@ -7,19 +7,28 @@ import (
 	"github.com/heetch/confita/backend/file"
 )
 
+// Config структура конфигурации:
+// Logger - конфигурация логгера;
+// Collection - Коллекция метрик.
 type Config struct {
 	Logger     LoggerConf
 	Collection CollectionConf
 }
 
+// LoggerConf содержит:
+// Level - уровень логирования
+// Path - путь к файлу лога.
 type LoggerConf struct {
 	Level string `config:"level"`
 	Path  string `config:"path"`
 }
 
+// CollectionConf содержит:
+// LoadAverageEnabled - включение метрики 'load average'
+// BufSize - глубина истории собираемых метрик.
 type CollectionConf struct {
-	LoadAverageEnabled bool  `config:"loadAverage"`
-	BufSize            int64 `config:"bufSize"`
+	LoadAverageEnabled bool `config:"loadAverage"`
+	BufSize            int  `config:"bufSize"`
 }
 
 func NewConfig(path string) (*Config, error) {

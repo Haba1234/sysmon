@@ -14,52 +14,75 @@ import (
 	"github.com/Haba1234/sysmon/internal/logger"
 )
 
+// LoadAverage сбор статистики по средней загрузке.
+// bufSize - максимальная глубина данных.
+// index - текущая позиция для новых значений.
+// stats - слайс для хранения статистики.
 type LoadAverage struct {
-	mu         *sync.Mutex
-	logg       *logger.Logger
-	bufSize    int64
-	oneMin     []float64
-	fiveMin    []float64
-	fifteenMin []float64
+	mu      *sync.Mutex
+	logg    *logger.Logger
+	bufSize int
+	index   int
+	stats   [][]float64
 }
 
-func NewLoadAverage(logg *logger.Logger, bufSize int64) *LoadAverage {
-	la := &LoadAverage{
-		mu:         &sync.Mutex{},
-		logg:       logg,
-		bufSize:    bufSize,
-		oneMin:     make([]float64, bufSize),
-		fiveMin:    make([]float64, bufSize),
-		fifteenMin: make([]float64, bufSize),
-	}
+const (
+	oneMin     = 0
+	fiveMin    = 1
+	fifteenMin = 2
+	sizeLA     = 3
+)
 
+func NewLoadAverage(logg *logger.Logger, bufSize int) *LoadAverage {
+	st := make([][]float64, sizeLA)
+	st[oneMin] = make([]float64, bufSize)
+	st[fiveMin] = make([]float64, bufSize)
+	st[fifteenMin] = make([]float64, bufSize)
+
+	la := &LoadAverage{
+		mu:      &sync.Mutex{},
+		logg:    logg,
+		bufSize: bufSize,
+		index:   0,
+		stats:   st,
+	}
 	return la
 }
 
+// Start запуск сервиса.
 func (la *LoadAverage) Start(ctx context.Context) error {
 	la.logg.Info("service 'load average' starting...")
 
 	var args = []string{ //nolint:gofumpt
 		"-c",
-		"top -bn1 | fgrep 'average'", // | tail -2
+		"top -bn1 | fgrep 'average'",
 	}
 
 	go func() {
-		if err := la.addNewValue(args); err != nil {
-			la.logg.Error(fmt.Sprintf("addNewValue() failed add new value: %s", err))
+		out, err := runCMD(args)
+		if err != nil {
+			la.logg.Error(fmt.Sprintf("runCMD() failed with %v", err))
+		}
+
+		if err := la.addNewValue(out); err != nil {
+			la.logg.Error(fmt.Sprintf("addNewValue() failed add new value: %v", err))
 		}
 
 		ticker := time.NewTicker(time.Second) // Сбор данных раз в секунду.
-	loop:
 		for {
 			select {
 			case <-ctx.Done():
 				la.logg.Info("'load average' stopped")
 				ticker.Stop()
-				break loop
+				return
 			case <-ticker.C:
-				if err := la.addNewValue(args); err != nil {
-					la.logg.Error(fmt.Sprintf("addNewValue() failed add new value: %s", err))
+				out, err := runCMD(args)
+				if err != nil {
+					la.logg.Error(fmt.Sprintf("runCMD() failed with %v", err))
+				}
+
+				if err := la.addNewValue(out); err != nil {
+					la.logg.Error(fmt.Sprintf("addNewValue() failed add new value: %v", err))
 				}
 			}
 		}
@@ -68,13 +91,14 @@ func (la *LoadAverage) Start(ctx context.Context) error {
 	return nil
 }
 
+// Stop останов сервиса.
 func (la *LoadAverage) Stop(ctx context.Context) error {
 	la.logg.Info("service 'load average'  stopping...")
 	return nil
 }
 
-func runCMD(path string, args []string) (string, error) {
-	cmd := exec.Command(path, args...)
+func runCMD(args []string) (string, error) {
+	cmd := exec.Command("bash", args...)
 	b, err := cmd.CombinedOutput()
 	return string(b), err
 }
@@ -83,73 +107,65 @@ var re = regexp.MustCompile(`: [0-9,. ]+`)
 
 // Функция парсит среднюю загрузку за минуту, 5 минут, 15 минут и сохраняет
 // в соответствующие слайсы.
-func (la *LoadAverage) addNewValue(args []string) error {
-	out, err := runCMD("bash", args)
-	if err != nil {
-		la.logg.Error(fmt.Sprintf("runCMD() failed with %s", err))
-	}
+func (la *LoadAverage) addNewValue(out string) error {
 	out = re.FindString(out)
 	if len(out) == 0 {
 		return errors.New("addNewValue() wrong string")
 	}
 
-	la.deleteLastValue()
 	out = strings.Trim(out, ": \n")
 	out = strings.ReplaceAll(out, ", ", " ")
 	arr := strings.SplitN(out, " ", 4)
+
 	la.mu.Lock()
 	defer la.mu.Unlock()
+
 	for i, s := range arr {
 		val, err := strconv.ParseFloat(strings.Replace(s, ",", ".", 1), 64)
 		if err != nil {
 			return err
 		}
-		switch i {
-		case 0:
-			la.oneMin[0] = val
-		case 1:
-			la.fiveMin[0] = val
-		case 2:
-			la.fifteenMin[0] = val
-		}
+		la.stats[i][la.index] = val
 	}
+	la.shiftIndex()
 	return nil
 }
 
-// Функция сдвигает значения в слайсах на одно значение назад,
-// освобождая место под новое значение в конце слайса.
-func (la *LoadAverage) deleteLastValue() {
-	la.mu.Lock()
-	defer la.mu.Unlock()
-	for i := la.bufSize - 1; i > 0; i-- {
-		la.oneMin[i] = la.oneMin[i-1]
-		la.fiveMin[i] = la.fiveMin[i-1]
-		la.fifteenMin[i] = la.fifteenMin[i-1]
+// Функция вычисляет новое значение индекса.
+func (la *LoadAverage) shiftIndex() {
+	la.index++
+	if la.index >= la.bufSize {
+		la.index = 0
 	}
 }
 
-// Подсчет среднего значения за последние m секунд.
-func (la *LoadAverage) AverageValue(m int64) ([]string, error) {
+func (la *LoadAverage) readValue(indexBuf, indexPos int) float64 {
+	var value float64
+	index := indexPos + la.index - 1
+	if index < 0 {
+		index = la.bufSize - 1
+	}
+	value = la.stats[indexBuf][index]
+	return value
+}
+
+// AverageValue подсчет среднего значения за последние m секунд.
+func (la *LoadAverage) AverageValue(m int) ([]string, error) {
 	if m <= 0 || m > la.bufSize {
 		return nil, errors.New("parameter N (period) has an invalid value")
 	}
-	str := make([]string, 3)
-	avg0 := 0.0
-	avg1 := 0.0
-	avg2 := 0.0
+	str := make([]string, sizeLA)
+	avg := []float64{0.0, 0.0, 0.0}
 
-	for i := 0; i < int(m)-1; i++ {
-		avg0 += la.oneMin[i]
-		avg1 += la.fiveMin[i]
-		avg2 += la.fifteenMin[i]
+	la.mu.Lock()
+	defer la.mu.Unlock()
+
+	for y := 0; y < sizeLA; y++ {
+		for i := 0; i < m; i++ {
+			avg[y] += la.readValue(y, i)
+		}
+		avg[y] /= float64(m)
+		str[y] = strconv.FormatFloat(avg[y], 'f', 2, 64)
 	}
-	avg0 /= float64(m)
-	avg1 /= float64(m)
-	avg2 /= float64(m)
-
-	str[0] = strconv.FormatFloat(avg0, 'f', 2, 64)
-	str[1] = strconv.FormatFloat(avg1, 'f', 2, 64)
-	str[2] = strconv.FormatFloat(avg2, 'f', 2, 64)
-
 	return str, nil
 }
