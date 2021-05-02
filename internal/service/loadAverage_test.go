@@ -24,21 +24,21 @@ func TestLoadAverage(t *testing.T) { //nolint:tparallel
 		},
 		{
 			name:        "Test 2. Parsing ok",
-			inData:      "top - 20:42:46 up 27 min,  1 user,  load average: 1,01 0,58 0,44",
+			inData:      "top - 20:42:46 up 27 min,  1 user,  load average: 1,00 0,58 0,44",
 			expectedErr: nil,
-			output:      []string{"1.01", "0.58", "0.44"},
+			output:      []string{"1.00", "0.58", "0.44"},
 		},
 		{
 			name:        "Test 3. Parsing ok",
-			inData:      "top - 20:42:46 up 27 min,  1 user,  load average: 1.00 0.65 0.55",
+			inData:      "top - 20:42:46 up 27 min,  1 user,  load average: 1.00 0.58 0.44",
 			expectedErr: nil,
-			output:      []string{"1.00", "0.65", "0.55"},
+			output:      []string{"1.00", "0.58", "0.44"},
 		},
 		{
 			name:        "Test 4. Parsing ok",
-			inData:      "load average: 1,00 0.60 0,54",
+			inData:      "load average: 1,00 0.58 0,44",
 			expectedErr: nil,
-			output:      []string{"1.00", "0.60", "0.54"},
+			output:      []string{"1.00", "0.58", "0.44"},
 		},
 		{
 			name:        "Test 5. Parsing ok",
