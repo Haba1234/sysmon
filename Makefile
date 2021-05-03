@@ -10,7 +10,7 @@ run: build
 	$(BIN) -config ./configs/config.toml
 
 test:
-	go test -race ./internal/...
+	go test -v -count=100 -race -timeout=1m ./...
 
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.39.0

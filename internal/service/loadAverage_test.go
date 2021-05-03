@@ -62,7 +62,7 @@ func TestLoadAverage(t *testing.T) { //nolint:tparallel
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			err = la.addNewValue(tt.inData)
+			err := la.addNewValue(tt.inData)
 			require.Equal(t, tt.expectedErr, err, "test failed")
 
 			out, err := la.AverageValue(1)

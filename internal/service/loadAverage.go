@@ -108,17 +108,17 @@ var re = regexp.MustCompile(`: [0-9,. ]+`)
 // Функция парсит среднюю загрузку за минуту, 5 минут, 15 минут и сохраняет
 // в соответствующие слайсы.
 func (la *LoadAverage) addNewValue(out string) error {
-	out = re.FindString(out)
-	if len(out) == 0 {
+	la.mu.Lock()
+	defer la.mu.Unlock()
+
+	result := re.FindString(out)
+	if len(result) == 0 {
 		return errors.New("addNewValue() wrong string")
 	}
 
-	out = strings.Trim(out, ": \n")
-	out = strings.ReplaceAll(out, ", ", " ")
-	arr := strings.SplitN(out, " ", 4)
-
-	la.mu.Lock()
-	defer la.mu.Unlock()
+	result = strings.Trim(result, ": \n")
+	result = strings.ReplaceAll(result, ", ", " ")
+	arr := strings.SplitN(result, " ", 4)
 
 	for i, s := range arr {
 		val, err := strconv.ParseFloat(strings.Replace(s, ",", ".", 1), 64)
