@@ -4,5 +4,5 @@ title = "System monitor"
 level = "DEBUG"
 
 [collection]
-bufSize = 60
+bufSize = 10
 loadAverage = true

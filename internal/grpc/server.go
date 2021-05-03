@@ -8,7 +8,7 @@ import (
 
 	stat "github.com/Haba1234/sysmon/internal/grpc/api"
 	"github.com/Haba1234/sysmon/internal/logger"
-	"github.com/Haba1234/sysmon/internal/service"
+	"github.com/Haba1234/sysmon/internal/service/loadaverage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,11 +19,11 @@ import (
 type Server struct {
 	stat.UnimplementedStatisticsServer
 	srv     *grpc.Server
-	service *service.LoadAverage
+	service *loadaverage.LoadAverage
 	logg    *logger.Logger
 }
 
-func NewServer(logg *logger.Logger, service *service.LoadAverage) *Server {
+func NewServer(logg *logger.Logger, service *loadaverage.LoadAverage) *Server {
 	return &Server{
 		service: service,
 		logg:    logg,

@@ -10,7 +10,10 @@ env:
 
 jobs:
   go_get:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -21,7 +24,10 @@ jobs:
         run: cd /tmp && go get -v "github.com/${GITHUB_REPOSITORY}"
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+      strategy:
+        matrix:
+          os: [ubuntu-latest, macos-latest]
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -32,7 +38,10 @@ jobs:
           version: v1.39
 
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+      strategy:
+        matrix:
+          os: [ubuntu-latest, macos-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -59,7 +68,10 @@ jobs:
 
 
   tests_by_makefile:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+      strategy:
+        matrix:
+          os: [ubuntu-latest, macos-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2

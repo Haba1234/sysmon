@@ -1,10 +1,9 @@
-package service
+package loadaverage
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,15 +14,12 @@ import (
 )
 
 // LoadAverage сбор статистики по средней загрузке.
-// bufSize - максимальная глубина данных.
-// index - текущая позиция для новых значений.
-// stats - слайс для хранения статистики.
 type LoadAverage struct {
 	mu      *sync.Mutex
 	logg    *logger.Logger
-	bufSize int
-	index   int
-	stats   [][]float64
+	bufSize int         // bufSize - максимальная глубина данных.
+	index   int         // index - текущая позиция для новых значений.
+	stats   [][]float64 // stats - слайс для хранения статистики.
 }
 
 const (
@@ -53,13 +49,8 @@ func NewLoadAverage(logg *logger.Logger, bufSize int) *LoadAverage {
 func (la *LoadAverage) Start(ctx context.Context) error {
 	la.logg.Info("service 'load average' starting...")
 
-	var args = []string{ //nolint:gofumpt
-		"-c",
-		"top -bn1 | fgrep 'average'",
-	}
-
 	go func() {
-		out, err := runCMD(args)
+		out, err := runCMD()
 		if err != nil {
 			la.logg.Error(fmt.Sprintf("runCMD() failed with %v", err))
 		}
@@ -76,7 +67,7 @@ func (la *LoadAverage) Start(ctx context.Context) error {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				out, err := runCMD(args)
+				out, err := runCMD()
 				if err != nil {
 					la.logg.Error(fmt.Sprintf("runCMD() failed with %v", err))
 				}
@@ -97,20 +88,11 @@ func (la *LoadAverage) Stop(ctx context.Context) error {
 	return nil
 }
 
-func runCMD(args []string) (string, error) {
-	cmd := exec.Command("bash", args...)
-	b, err := cmd.CombinedOutput()
-	return string(b), err
-}
-
 var re = regexp.MustCompile(`: [0-9,. ]+`)
 
 // Функция парсит среднюю загрузку за минуту, 5 минут, 15 минут и сохраняет
 // в соответствующие слайсы.
 func (la *LoadAverage) addNewValue(out string) error {
-	la.mu.Lock()
-	defer la.mu.Unlock()
-
 	result := re.FindString(out)
 	if len(result) == 0 {
 		return errors.New("addNewValue() wrong string")
@@ -119,6 +101,9 @@ func (la *LoadAverage) addNewValue(out string) error {
 	result = strings.Trim(result, ": \n")
 	result = strings.ReplaceAll(result, ", ", " ")
 	arr := strings.SplitN(result, " ", 4)
+
+	la.mu.Lock()
+	defer la.mu.Unlock()
 
 	for i, s := range arr {
 		val, err := strconv.ParseFloat(strings.Replace(s, ",", ".", 1), 64)
@@ -141,10 +126,11 @@ func (la *LoadAverage) shiftIndex() {
 
 func (la *LoadAverage) readValue(indexBuf, indexPos int) float64 {
 	var value float64
-	index := indexPos + la.index - 1
-	if index < 0 {
-		index = la.bufSize - 1
+	laIndex := la.index - 1 //nolint:ifshort
+	if laIndex < 0 {
+		laIndex = la.bufSize - 1
 	}
+	index := (indexPos + laIndex) % la.bufSize
 	value = la.stats[indexBuf][index]
 	return value
 }

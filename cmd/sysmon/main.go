@@ -11,7 +11,7 @@ import (
 
 	"github.com/Haba1234/sysmon/internal/grpc"
 	"github.com/Haba1234/sysmon/internal/logger"
-	"github.com/Haba1234/sysmon/internal/service"
+	"github.com/Haba1234/sysmon/internal/service/loadaverage"
 )
 
 var configFile string
@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("Config error: %v", err)
 	}
 
-	loadAverage := service.NewLoadAverage(logg, config.Collection.BufSize)
+	loadAverage := loadaverage.NewLoadAverage(logg, config.Collection.BufSize)
 
 	server := grpc.NewServer(logg, loadAverage)
 

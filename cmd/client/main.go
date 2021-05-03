@@ -29,7 +29,7 @@ func main() {
 func createClient(statClient stat.StatisticsClient) {
 	req := &stat.SubscriptionRequest{
 		Period: durationpb.New(5 * time.Second),
-		Depth:  10,
+		Depth:  5,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)

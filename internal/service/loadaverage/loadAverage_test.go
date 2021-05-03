@@ -1,4 +1,4 @@
-package service
+package loadaverage
 
 import (
 	"io/ioutil"
