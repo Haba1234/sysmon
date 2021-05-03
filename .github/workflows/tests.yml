@@ -25,6 +25,9 @@ jobs:
 
   lint:
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -36,6 +39,9 @@ jobs:
 
   tests:
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -63,6 +69,9 @@ jobs:
 
   tests_by_makefile:
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
