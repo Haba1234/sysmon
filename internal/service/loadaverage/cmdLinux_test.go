@@ -1,6 +1,8 @@
 package loadaverage
 
 import (
+	"log"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,7 +11,12 @@ import (
 func TestCmdLinux(t *testing.T) {
 	t.Run("test func runCMD", func(t *testing.T) {
 		str, err := runCMD()
-		require.NoError(t, err)
-		require.GreaterOrEqual(t, len(str), 0)
+		log.Println("str:", str)
+		log.Println("err:", err)
+		if runtime.GOOS != "windows" {
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, len(str), 0)
+		}
+		require.NotNil(t, err)
 	})
 }
