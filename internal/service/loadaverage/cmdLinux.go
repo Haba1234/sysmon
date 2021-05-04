@@ -27,7 +27,7 @@ func runCMD() ([]float64, error) {
 		if err != nil {
 			return nil, err
 		}
-		raw = string(b)
+		raw = string(b[2:])
 		log.Println("MAC OS:", string(b))
 	default:
 		return nil, errors.New("command 'load average' not supported operating system")
