@@ -5,37 +5,51 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os/exec"
 	"runtime"
+	"strings"
 )
 
-func runCMD() (string, error) {
+func runCMD() ([]float64, error) {
 	log.Println("GOOS: ", runtime.GOOS)
-	if runtime.GOOS != "darwin" {
-		/*grep := exec.Command("grep", "average")
-		top := exec.Command("top", "-bn1")
-		pipe, _ := top.StdoutPipe()
-		defer pipe.Close()
+	const countData = 3 // Кол-во ожидаемых данных по средней загрузке (1 мин, 5 мин, 15 мин).
 
-		grep.Stdin = pipe
-		err := top.Start()
+	if runtime.GOOS == "linux" {
+		raw, err := readProcFile("/proc/loadavg")
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		b, err := grep.CombinedOutput()
-		fmt.Println(string(b))
-		return string(b), err
 
-		*/
-
-		raw, err := ioutil.ReadFile("/proc/loadavg")
+		result := strings.ReplaceAll(raw, ",", ".")
+		val := []float64{0.0, 0.0, 0.0}
+		n, err := fmt.Sscanf(result, "%f %f %f",
+			&val[0], &val[1], &val[2])
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		str := []string{"", "", ""}
-		fmt.Sscanf(string(raw), "%s %s %s",
-			&str[0], &str[1], &str[2])
-
-		return str[0] + " " + str[1] + " " + str[1], nil
+		if n < countData {
+			return nil, errors.New("data 'load average' not fully read")
+		}
+		return val, nil
 	}
-	return "", errors.New("command 'load average' not supported operating system")
+
+	if runtime.GOOS == "darwin" {
+		top := exec.Command("sysctl ", "-n", "vm.loadavg")
+		b, err := top.CombinedOutput()
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("MAC OS:", string(b))
+
+		return nil, nil
+	}
+	return nil, errors.New("command 'load average' not supported operating system")
+}
+
+func readProcFile(str string) (string, error) {
+	raw, err := ioutil.ReadFile(str)
+	if err != nil {
+		return "", err
+	}
+	return string(raw), nil
 }

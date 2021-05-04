@@ -1,7 +1,6 @@
 package loadaverage
 
 import (
-	"log"
 	"runtime"
 	"testing"
 
@@ -10,14 +9,20 @@ import (
 
 func TestCmdLinux(t *testing.T) {
 	t.Run("test func runCMD", func(t *testing.T) {
-		str, err := runCMD()
-		log.Println("str:", str)
-		log.Println("err:", err)
+		result, err := runCMD()
+
 		if runtime.GOOS != "darwin" {
 			require.NoError(t, err)
-			require.GreaterOrEqual(t, len(str), 0)
+			for _, val := range result {
+				require.GreaterOrEqual(t, val, 0.0)
+			}
 			return
 		}
+		require.NotNil(t, err)
+	})
+
+	t.Run("file not found", func(t *testing.T) {
+		_, err := readProcFile("test")
 		require.NotNil(t, err)
 	})
 }

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -54,10 +52,7 @@ func (la *LoadAverage) Start(ctx context.Context) error {
 		if err != nil {
 			la.logg.Error(fmt.Sprintf("runCMD() failed with %v", err))
 		}
-
-		if err := la.addNewValue(out); err != nil {
-			la.logg.Error(fmt.Sprintf("addNewValue() failed add new value: %v", err))
-		}
+		la.addNewValue(out)
 
 		ticker := time.NewTicker(time.Second) // Сбор данных раз в секунду.
 		for {
@@ -71,10 +66,7 @@ func (la *LoadAverage) Start(ctx context.Context) error {
 				if err != nil {
 					la.logg.Error(fmt.Sprintf("runCMD() failed with %v", err))
 				}
-
-				if err := la.addNewValue(out); err != nil {
-					la.logg.Error(fmt.Sprintf("addNewValue() failed add new value: %v", err))
-				}
+				la.addNewValue(out)
 			}
 		}
 	}()
@@ -88,35 +80,18 @@ func (la *LoadAverage) Stop(ctx context.Context) error {
 	return nil
 }
 
-var re = regexp.MustCompile(`: [0-9,. ]+`)
-
-// Функция парсит среднюю загрузку за минуту, 5 минут, 15 минут и сохраняет
-// в соответствующие слайсы.
-func (la *LoadAverage) addNewValue(out string) error {
-	result := re.FindString(out)
-	if len(result) == 0 {
-		return errors.New("addNewValue() wrong string")
-	}
-
-	result = strings.Trim(result, ": \n")
-	result = strings.ReplaceAll(result, ", ", " ")
-	arr := strings.SplitN(result, " ", 4)
-
+func (la *LoadAverage) addNewValue(out []float64) {
 	la.mu.Lock()
 	defer la.mu.Unlock()
 
-	for i, s := range arr {
-		val, err := strconv.ParseFloat(strings.Replace(s, ",", ".", 1), 64)
-		if err != nil {
-			return err
-		}
-		la.stats[i][la.index] = val
+	result := out
+	for i, v := range result {
+		la.stats[i][la.index] = v
 	}
 	la.shiftIndex()
-	return nil
 }
 
-// Функция вычисляет новое значение индекса.
+// Функция вычисляет новое значение индекса в кольцевом буфере.
 func (la *LoadAverage) shiftIndex() {
 	la.index++
 	if la.index >= la.bufSize {
