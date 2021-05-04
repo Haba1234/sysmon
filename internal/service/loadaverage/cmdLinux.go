@@ -34,13 +34,19 @@ func runCMD() ([]float64, error) {
 	}
 
 	if runtime.GOOS == "darwin" {
-		top := exec.Command("sysctl ", "-n", "vm.loadavg")
+		top := exec.Command("sysctl", "-n", "vm.loadavg")
 		b, err := top.CombinedOutput()
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("MAC OS:", string(b))
+		log.Println("MAC OS:", string(b))
 
+		top = exec.Command("uptime")
+		b, err = top.CombinedOutput()
+		if err != nil {
+			return nil, err
+		}
+		log.Println("MAC OS:", string(b))
 		return nil, nil
 	}
 	return nil, errors.New("command 'load average' not supported operating system")
