@@ -1,3 +1,5 @@
+// +build linux ios windows
+
 package loadaverage
 
 import (
