@@ -3,23 +3,19 @@ package loadaverage
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 	"runtime"
-	"syscall"
 )
 
 func runCMD() (string, error) {
-	var info syscall.Sysinfo_t
+	/*var info syscall.Sysinfo_t
 	err := syscall.Sysinfo(&info)
 	if err != nil {
 		return "", err
 	}
 	log.Println("load1: ", float64(info.Loads[0])/float64(1<<16))
 	log.Println("load2: ", float64(info.Loads[1])/float64(1<<16))
-	log.Println("load3: ", float64(info.Loads[2])/float64(1<<16))
-	log.Println("Freeram: ", info.Freeram)
-	log.Println("Totalram: ", info.Totalram)
+	log.Println("load3: ", float64(info.Loads[2])/float64(1<<16))*/
 
 	if runtime.GOOS != "windows" {
 		grep := exec.Command("grep", "average")
