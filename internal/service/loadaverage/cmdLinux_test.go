@@ -13,7 +13,7 @@ func TestCmdLinux(t *testing.T) {
 		str, err := runCMD()
 		log.Println("str:", str)
 		log.Println("err:", err)
-		if runtime.GOOS != "ios" {
+		if runtime.GOOS != "darwin" {
 			require.NoError(t, err)
 			require.GreaterOrEqual(t, len(str), 0)
 			return

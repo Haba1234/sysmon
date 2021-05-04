@@ -10,7 +10,7 @@ import (
 
 func runCMD() (string, error) {
 	log.Println("GOOS: ", runtime.GOOS)
-	if runtime.GOOS != "ios" {
+	if runtime.GOOS != "darwin" {
 		/*grep := exec.Command("grep", "average")
 		top := exec.Command("top", "-bn1")
 		pipe, _ := top.StdoutPipe()
