@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"runtime"
 )
 
 func runCMD() (string, error) {
-	if runtime.GOOS == "linux" {
+	log.Println("GOOS: ", runtime.GOOS)
+	if runtime.GOOS != "ios" {
 		/*grep := exec.Command("grep", "average")
 		top := exec.Command("top", "-bn1")
 		pipe, _ := top.StdoutPipe()
