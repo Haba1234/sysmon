@@ -1,5 +1,3 @@
-// +build linux ios
-
 package loadaverage
 
 import (
