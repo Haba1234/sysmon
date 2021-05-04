@@ -1,4 +1,4 @@
-// +build linux ios windows
+// +build linux ios
 
 package loadaverage
 

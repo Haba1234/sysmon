@@ -9,25 +9,11 @@ env:
   GO111MODULE: "on"
 
 jobs:
-  lint:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Linters
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: v1.39
-
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -51,30 +37,3 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: true
           verbose: true
-
-
-  tests_by_makefile:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ^1.16
-
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Get dependencies
-        run: go mod download
-
-      - name: make lint
-        run: make lint
-
-      - name: make build
-        run: make build
-
-      - name: make test
-        run: make test
