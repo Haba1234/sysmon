@@ -16,6 +16,7 @@ func TestCmdLinux(t *testing.T) {
 		if runtime.GOOS != "windows" {
 			require.NoError(t, err)
 			require.GreaterOrEqual(t, len(str), 0)
+			return
 		}
 		require.NotNil(t, err)
 	})
