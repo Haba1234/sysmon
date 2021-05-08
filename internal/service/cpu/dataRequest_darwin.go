@@ -18,8 +18,8 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	var raw string
 	var err error
 
-	//grep := exec.Command("grep", "Cpu(s)")
-	top := exec.Command("top", "-b", "-n1")
+	grep := exec.Command("grep", "CPU")
+	top := exec.Command("top", "-l 1")
 
 	b, err := top.Output()
 	if err != nil {
@@ -28,7 +28,7 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	}
 	log.Println("MAC OS.CPU v1:", string(b))
 
-	/*pipe, _ := top.StdoutPipe()
+	pipe, _ := top.StdoutPipe()
 	defer pipe.Close()
 	grep.Stdin = pipe
 	err = top.Start()
@@ -39,7 +39,7 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("MAC OS.CPU:", string(b))*/
+	log.Println("MAC OS.CPU:", string(b))
 	raw = strings.ReplaceAll(string(b), ", ", " ")
 	raw = strings.ReplaceAll(raw, "ni,", "ni ")
 	raw = strings.ReplaceAll(raw, ",", ".")
