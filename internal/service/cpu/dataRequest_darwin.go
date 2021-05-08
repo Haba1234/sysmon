@@ -12,19 +12,11 @@ import (
 func (cp *CPU) DataRequest() ([]float64, error) {
 	const countData = 3 // Кол-во ожидаемых данных по проценту использования CPU (user, sys, idle).
 	val := []float64{0.0, 0.0, 0.0}
-	//var raw string
+	var raw string
 	var err error
 
 	grep := exec.Command("grep", "CPU")
 	top := exec.Command("top", "-l 1")
-
-	/*b, err := top.Output()
-	if err != nil {
-		log.Println("MAC OS.CPU v1 error:")
-		return nil, err
-	}
-	log.Println("MAC OS.CPU v1:", string(b))*/
-
 	pipe, _ := top.StdoutPipe()
 	defer pipe.Close()
 	grep.Stdin = pipe
@@ -37,18 +29,17 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 		return nil, err
 	}
 	fmt.Println("MAC OS.CPU:", string(b))
-	/*raw = strings.ReplaceAll(string(b), ", ", " ")
-	raw = strings.ReplaceAll(raw, "ni,", "ni ")
-	raw = strings.ReplaceAll(raw, ",", ".")
-	raw = strings.TrimPrefix(raw, "%Cpu(s): ")
+	raw = strings.ReplaceAll(string(b), ", ", " ")
+	raw = strings.ReplaceAll(raw, "%", "")
+	raw = strings.TrimPrefix(raw, "CPU usage: ")
 
-	n, err := fmt.Sscanf(raw, "%f us %f sy %f ni %f id",
-		&val[0], &val[1], &val[2], &val[3])
+	n, err := fmt.Sscanf(raw, "%f user %f sys %f idle",
+		&val[0], &val[1], &val[2])
 	if err != nil {
 		return nil, err
 	}
 	if n < countData {
 		return nil, errors.New("data 'load average' not fully read")
-	}*/
+	}
 	return []float64{val[0], val[1], val[3]}, nil
 }
