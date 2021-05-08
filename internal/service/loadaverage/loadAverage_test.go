@@ -7,7 +7,6 @@ import (
 )
 
 func TestLoadAverage(t *testing.T) { //nolint:tparallel
-	t.Skip()
 	tests := []struct {
 		name        string
 		inData      []float64
@@ -58,8 +57,10 @@ func TestLoadAverage(t *testing.T) { //nolint:tparallel
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			la.mu.Lock()
 			la.WriteValue(tt.inData)
 			la.ShiftIndex()
+			la.mu.Unlock()
 			out := la.GetValue(1)
 			require.Equal(t, tt.output, out, "test failed")
 			_ = tt

@@ -10,7 +10,6 @@ import (
 )
 
 func TestService(t *testing.T) {
-	t.Skip()
 	t.Run("test service", func(t *testing.T) {
 		tFile, err := ioutil.TempFile("/tmp", "test")
 		if err != nil {

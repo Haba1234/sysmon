@@ -36,6 +36,8 @@ type writeStatistics interface {
 	DataRequest() ([]float64, error)
 	ShiftIndex()
 	WriteValue(out []float64)
+	LockMutex()
+	UnlockMutex()
 }
 
 func NewCollector(logg *logger.Logger, collection Collection) *Collector {
@@ -94,8 +96,10 @@ func (col *Collector) addNewValue(i writeStatistics) error {
 	if err != nil {
 		return err
 	}
+	i.LockMutex()
 	i.WriteValue(out)
 	i.ShiftIndex()
+	i.UnlockMutex()
 	return nil
 }
 

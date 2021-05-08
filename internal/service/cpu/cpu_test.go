@@ -57,8 +57,10 @@ func TestLoadAverage(t *testing.T) { //nolint:tparallel
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			cpu.mu.Lock()
 			cpu.WriteValue(tt.inData)
 			cpu.ShiftIndex()
+			cpu.mu.Unlock()
 			out := cpu.GetValue(1)
 			require.Equal(t, tt.output, out, "test failed")
 			_ = tt

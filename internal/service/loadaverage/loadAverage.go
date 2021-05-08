@@ -73,11 +73,16 @@ func (la *LoadAverage) ShiftIndex() {
 
 // WriteValue записывает новое значение в кольцевой буфер.
 func (la *LoadAverage) WriteValue(out []float64) {
-	la.mu.Lock()
-	defer la.mu.Unlock()
-
 	result := out
 	for i, v := range result {
 		la.stats[i][la.index] = v
 	}
+}
+
+func (la *LoadAverage) LockMutex() {
+	la.mu.Lock()
+}
+
+func (la *LoadAverage) UnlockMutex() {
+	la.mu.Unlock()
 }

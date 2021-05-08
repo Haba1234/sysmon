@@ -73,11 +73,16 @@ func (cp *CPU) ShiftIndex() {
 
 // WriteValue записывает новое значение в кольцевой буфер.
 func (cp *CPU) WriteValue(out []float64) {
-	cp.mu.Lock()
-	defer cp.mu.Unlock()
-
 	result := out
 	for i, v := range result {
 		cp.stats[i][cp.index] = v
 	}
+}
+
+func (cp *CPU) LockMutex() {
+	cp.mu.Lock()
+}
+
+func (cp *CPU) UnlockMutex() {
+	cp.mu.Unlock()
 }
