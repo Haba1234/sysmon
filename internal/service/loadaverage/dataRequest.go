@@ -30,6 +30,7 @@ func (la *LoadAverage) DataRequest() ([]float64, error) {
 		}
 		raw = strings.Trim(string(b), "{ }")
 		log.Println("MAC OS.AVG:", string(b))
+		log.Println("MAC OS.AVG:", raw)
 	default:
 		return nil, errors.New("command 'load average' not supported operating system")
 	}
