@@ -18,7 +18,7 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	var err error
 
 	grep := exec.Command("grep", "Cpu(s)")
-	top := exec.Command("top", "-bn1")
+	top := exec.Command("top", "-b -n1")
 	pipe, _ := top.StdoutPipe()
 	defer pipe.Close()
 	grep.Stdin = pipe
