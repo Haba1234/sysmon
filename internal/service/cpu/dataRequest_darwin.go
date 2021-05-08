@@ -19,7 +19,7 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	var err error
 
 	grep := exec.Command("grep", "Cpu(s)")
-	top := exec.Command("top", "-b -n1")
+	top := exec.Command("top", "-b", "-n1")
 
 	/*b, err := top.Output()
 	if err != nil {
