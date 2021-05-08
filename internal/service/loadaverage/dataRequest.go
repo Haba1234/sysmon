@@ -7,7 +7,6 @@ import (
 	"log"
 	"os/exec"
 	"runtime"
-	"strings"
 )
 
 func (la *LoadAverage) DataRequest() ([]float64, error) {
@@ -28,21 +27,20 @@ func (la *LoadAverage) DataRequest() ([]float64, error) {
 		if err != nil {
 			return nil, err
 		}
-		raw = strings.Trim(string(b), "{ }")
+		//raw = strings.Trim(string(b), "{ }")
+		//raw := strings.Split(raw, " ")
 		log.Println("MAC OS.AVG:", string(b))
-		log.Println("MAC OS.AVG:", raw)
+		//log.Println("MAC OS.AVG:", raw)
 	default:
 		return nil, errors.New("command 'load average' not supported operating system")
 	}
 
-	n, err := fmt.Sscanf(raw, "%f %f %f",
+	_, err = fmt.Sscanf(raw, "{ %f %f %f }",
 		&val[0], &val[1], &val[2])
 	if err != nil {
 		return nil, err
 	}
-	if n < countData {
-		return nil, errors.New("data 'load average' not fully read")
-	}
+
 	return val, nil
 }
 
