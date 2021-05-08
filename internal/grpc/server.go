@@ -123,9 +123,9 @@ func (s *Server) getStatistics(m int) *stat.StatisticsResponse {
 		FifteenMin: data.La[2],
 	}
 	stats.Cp = &stat.CPUAverage{
-		UserMode: data.CPU[0],
-		SysMode:  data.CPU[1],
-		Idle:     data.CPU[2],
+		User: data.CPU[0],
+		Sys:  data.CPU[1],
+		Idle: data.CPU[2],
 	}
 	return stats
 }

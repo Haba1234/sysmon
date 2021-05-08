@@ -22,8 +22,8 @@ message LoadAverage {
 }
 
 message CPUAverage {
-  string userMode = 1;
-  string sysMode = 2;
+  string user = 1;
+  string sys = 2;
   string idle = 3;
 }
 
