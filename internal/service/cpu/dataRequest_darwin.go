@@ -3,8 +3,10 @@
 package cpu
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 // DataRequest с помощью exec читает данные по использованию CPU через команду top,
