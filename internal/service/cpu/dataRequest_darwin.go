@@ -1,8 +1,9 @@
-// +build darwin ios
+// +build ios
 
 package cpu
 
 import (
+	"fmt"
 	"os/exec"
 )
 
@@ -35,7 +36,7 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("MAC OS.CPU:", string(b))
+	fmt.Println("MAC OS.CPU:", string(b))
 	/*raw = strings.ReplaceAll(string(b), ", ", " ")
 	raw = strings.ReplaceAll(raw, "ni,", "ni ")
 	raw = strings.ReplaceAll(raw, ",", ".")
