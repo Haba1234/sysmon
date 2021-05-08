@@ -14,7 +14,6 @@ func (la *LoadAverage) DataRequest() ([]float64, error) {
 	const countData = 3 // Кол-во ожидаемых данных по средней загрузке (1 мин, 5 мин, 15 мин).
 	val := []float64{0.0, 0.0, 0.0}
 	var raw string
-	var fraw []string
 	var err error
 
 	switch runtime.GOOS {
@@ -30,21 +29,22 @@ func (la *LoadAverage) DataRequest() ([]float64, error) {
 			return nil, err
 		}
 		//raw = strings.Trim(string(b), "{ }")
-		fraw = strings.Split(raw, " ")
-		log.Println("MAC OS.AVG:", string(b))
-		log.Println("MAC OS.AVG:", raw)
+		raw = string(b[2:])
 	default:
 		return nil, errors.New("command 'load average' not supported operating system")
 	}
-
+	log.Println("MAC OS.AVG:", raw)
+	fray := strings.Split(raw, " ")
 	/*_, err = fmt.Sscanf(raw, "{ %f %f %f }",
 		&val[0], &val[1], &val[2])
 	if err != nil {
 		return nil, err
 	}*/
-	val[0], _ = strconv.ParseFloat(fraw[1], 64)
-	val[1], _ = strconv.ParseFloat(fraw[2], 64)
-	val[2], _ = strconv.ParseFloat(fraw[3], 64)
+	log.Println(fray)
+	for i := 0; i < countData; i++ {
+		val[i], _ = strconv.ParseFloat(fray[i], 64)
+	}
+	log.Println(val)
 	return val, nil
 }
 
