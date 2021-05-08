@@ -7,7 +7,7 @@ import (
 )
 
 func TestDataRequest(t *testing.T) {
-	t.Run("test func DataRequest", func(t *testing.T) {
+	t.Run("test func DataRequest 'CPU'", func(t *testing.T) {
 		cpu := NewCPU(5)
 		result, err := cpu.DataRequest()
 		require.NoError(t, err)

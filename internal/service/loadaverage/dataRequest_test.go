@@ -7,7 +7,7 @@ import (
 )
 
 func TestDataRequest(t *testing.T) {
-	t.Run("test func DataRequest", func(t *testing.T) {
+	t.Run("test func DataRequest 'AVG'", func(t *testing.T) {
 		la := NewLoadAverage(5)
 		result, err := la.DataRequest()
 		require.NoError(t, err)
