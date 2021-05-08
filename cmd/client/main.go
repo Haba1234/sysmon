@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"io"
 	"log"
 	"time"
@@ -15,6 +16,12 @@ import (
 )
 
 func main() {
+	var period int
+	var depth int
+	flag.IntVar(&period, "n", 5, "statistics retrieval interval")
+	flag.IntVar(&depth, "m", 10, "statistics query depth")
+	flag.Parse()
+
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, "localhost:8080", grpc.WithInsecure())
 	if err != nil {
@@ -23,13 +30,13 @@ func main() {
 	defer conn.Close()
 
 	client := stat.NewStatisticsClient(conn)
-	createClient(client)
+	createClient(client, depth, period)
 }
 
-func createClient(statClient stat.StatisticsClient) {
+func createClient(statClient stat.StatisticsClient, m, n int) {
 	req := &stat.SubscriptionRequest{
-		Period: durationpb.New(5 * time.Second),
-		Depth:  5,
+		Period: durationpb.New(time.Duration(n) * time.Second),
+		Depth:  int64(m),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
