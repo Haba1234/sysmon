@@ -6,9 +6,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCmdLinux(t *testing.T) {
-	t.Run("test func runCMD", func(t *testing.T) {
-		result, err := runCMD()
+func TestDataRequest(t *testing.T) {
+	t.Run("test func DataRequest", func(t *testing.T) {
+		la := NewLoadAverage(5)
+		result, err := la.DataRequest()
 		require.NoError(t, err)
 		for _, val := range result {
 			require.GreaterOrEqual(t, val, 0.0)

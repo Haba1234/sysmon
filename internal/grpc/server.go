@@ -8,7 +8,7 @@ import (
 
 	stat "github.com/Haba1234/sysmon/internal/grpc/api"
 	"github.com/Haba1234/sysmon/internal/logger"
-	"github.com/Haba1234/sysmon/internal/service/loadaverage"
+	"github.com/Haba1234/sysmon/internal/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,14 +19,16 @@ import (
 type Server struct {
 	stat.UnimplementedStatisticsServer
 	srv     *grpc.Server
-	service *loadaverage.LoadAverage
 	logg    *logger.Logger
+	serv    *service.Collector
+	bufSize int
 }
 
-func NewServer(logg *logger.Logger, service *loadaverage.LoadAverage) *Server {
+func NewServer(logg *logger.Logger, serv *service.Collector, bufSize int) *Server {
 	return &Server{
-		service: service,
 		logg:    logg,
+		bufSize: bufSize,
+		serv:    serv,
 	}
 }
 
@@ -61,37 +63,69 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 func (s *Server) ListStatistics(req *stat.SubscriptionRequest, stream stat.Statistics_ListStatisticsServer) error {
-	s.logg.Debug(fmt.Sprintf("Client connected - period: %v, depth: %v", req.GetPeriod().AsDuration(), req.GetDepth()), "grpc")
-	ticker := time.NewTicker(req.GetPeriod().AsDuration())
-	s.logg.Warn("Старт таймера с заданной периодичностью")
-loop:
+	n := req.GetPeriod().AsDuration()
+	m := int(req.GetDepth())
+	buf := time.Duration(s.bufSize) * time.Second
+	s.logg.Debug(fmt.Sprintf("Client connected - period: %v, depth: %vs, buf: %v", n, m, buf), "grpc")
+
+	if n <= 0 {
+		return status.Error(
+			codes.InvalidArgument,
+			"Period must be greater than 0 sec",
+		)
+	}
+	if n > buf {
+		return status.Error(
+			codes.InvalidArgument,
+			fmt.Sprintf("Period must be less than %v sec", buf),
+		)
+	}
+	if m <= 0 {
+		return status.Error(
+			codes.InvalidArgument,
+			"Depth must be greater than 0 sec",
+		)
+	}
+	if m > s.bufSize {
+		return status.Error(
+			codes.InvalidArgument,
+			fmt.Sprintf("Depth must be less than %v sec", s.bufSize),
+		)
+	}
+
+	ticker := time.NewTicker(n)
 	for {
 		select {
 		case <-stream.Context().Done():
 			s.logg.Info("gRPC client stopped")
 			ticker.Stop()
-			break loop
+			return nil
 		case <-ticker.C:
-			result, err := s.service.AverageValue(int(req.GetDepth()))
-			if err != nil {
-				s.logg.Error(fmt.Sprintf("load average request error: %v", err))
-				return status.Errorf(codes.Internal, "load average request error: %v", err)
-			}
-			loadAvg := ""
-			for _, s := range result {
-				loadAvg = loadAvg + " " + s
-			}
-			s.logg.Info(fmt.Sprintf("Средняя заргузка: %s", loadAvg))
-			la := stat.LoadAverage{
-				OneMin:     result[0],
-				FiveMin:    result[1],
-				FifteenMin: result[2],
-			}
-
-			if err := stream.Send(&stat.StatisticsResponse{La: &la}); err != nil {
-				return err
+			if s.serv.StatsData.Counter >= m { // Данные накопились, можно отправлять.
+				if err := stream.Send(s.getStatistics(m)); err != nil {
+					return err
+				}
 			}
 		}
 	}
-	return nil
+}
+
+func (s *Server) getStatistics(m int) *stat.StatisticsResponse {
+	stats := &stat.StatisticsResponse{
+		Status: "OK",
+	}
+	s.serv.ReadStats(m)
+
+	data := s.serv.StatsData
+	stats.La = &stat.LoadAverage{
+		OneMin:     data.La[0],
+		FiveMin:    data.La[1],
+		FifteenMin: data.La[2],
+	}
+	stats.Cp = &stat.CPUAverage{
+		UserMode: data.CPU[0],
+		SysMode:  data.CPU[1],
+		Idle:     data.CPU[2],
+	}
+	return stats
 }

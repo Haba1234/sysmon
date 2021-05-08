@@ -21,6 +21,14 @@ message LoadAverage {
   string fifteenMin = 3;
 }
 
+message CPUAverage {
+  string userMode = 1;
+  string sysMode = 2;
+  string idle = 3;
+}
+
 message StatisticsResponse {
-  LoadAverage la = 1;
+  string status = 1;
+  LoadAverage la = 2;
+  CPUAverage cp = 3;
 }

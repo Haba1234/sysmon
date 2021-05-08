@@ -21,19 +21,15 @@ RUN CGO_ENABLED=0 go build \
         -o ${BIN_FILE} cmd/sysmon/*
 
 # На выходе тонкий образ
-FROM alpine:3.9
+FROM ubuntu:21.04
 
-LABEL ORGANIZATION="OTUS Online Education"
 LABEL SERVICE="sysmon"
-LABEL MAINTAINERS="student@otus.ru"
 
 ENV BIN_FILE "/opt/sysmon/sysmon"
 COPY --from=build ${BIN_FILE} ${BIN_FILE}
 
 ENV CONFIG_FILE /etc/sysmon/config.toml
 COPY ./configs/config.toml ${CONFIG_FILE}
-
-RUN apk add --update bash && rm -rf /var/cache/apk/*
 
 EXPOSE 8080
 

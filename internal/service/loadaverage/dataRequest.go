@@ -7,9 +7,10 @@ import (
 	"log"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
-func runCMD() ([]float64, error) {
+func (la *LoadAverage) DataRequest() ([]float64, error) {
 	const countData = 3 // Кол-во ожидаемых данных по средней загрузке (1 мин, 5 мин, 15 мин).
 	val := []float64{0.0, 0.0, 0.0}
 	var raw string
@@ -27,7 +28,7 @@ func runCMD() ([]float64, error) {
 		if err != nil {
 			return nil, err
 		}
-		raw = string(b[2:])
+		raw = strings.Trim(string(b), "{ }")
 		log.Println("MAC OS:", string(b))
 	default:
 		return nil, errors.New("command 'load average' not supported operating system")

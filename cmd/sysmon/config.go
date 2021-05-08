@@ -22,6 +22,7 @@ type LoggerConf struct {
 // CollectionConf структура конфигурации.
 type CollectionConf struct {
 	LoadAverageEnabled bool `config:"loadAverage"` // LoadAverageEnabled - включение метрики 'load average'.
+	CPUEnabled         bool `config:"cpuAverage"`  // CPUEnabled - включение метрики 'cpu average'.
 	BufSize            int  `config:"bufSize"`     // BufSize - глубина истории собираемых метрик.
 }
 
@@ -34,6 +35,7 @@ func NewConfig(path string) (*Config, error) {
 		},
 		Collection: CollectionConf{
 			LoadAverageEnabled: true,
+			CPUEnabled:         true,
 			BufSize:            60,
 		},
 	}

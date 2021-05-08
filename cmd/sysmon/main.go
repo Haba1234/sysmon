@@ -11,7 +11,7 @@ import (
 
 	"github.com/Haba1234/sysmon/internal/grpc"
 	"github.com/Haba1234/sysmon/internal/logger"
-	"github.com/Haba1234/sysmon/internal/service/loadaverage"
+	"github.com/Haba1234/sysmon/internal/service"
 )
 
 var configFile string
@@ -35,9 +35,14 @@ func main() {
 		log.Fatalf("Config error: %v", err)
 	}
 
-	loadAverage := loadaverage.NewLoadAverage(logg, config.Collection.BufSize)
+	settings := service.Collection{
+		LoadAverageEnabled: config.Collection.LoadAverageEnabled,
+		CPUEnabled:         config.Collection.CPUEnabled,
+		BufSize:            config.Collection.BufSize,
+	}
+	collector := service.NewCollector(logg, settings)
 
-	server := grpc.NewServer(logg, loadAverage)
+	server := grpc.NewServer(logg, collector, config.Collection.BufSize)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
@@ -48,10 +53,6 @@ func main() {
 		ctx, cancel = context.WithTimeout(context.Background(), time.Second*1)
 		defer cancel()
 
-		if err := loadAverage.Stop(ctx); err != nil {
-			logg.Error("failed to stop 'load average' service: " + err.Error())
-		}
-
 		if err := server.Stop(ctx); err != nil {
 			logg.Error("failed to stop gRPC server: " + err.Error())
 		}
@@ -60,11 +61,9 @@ func main() {
 	logg.Info("system monitoring is running...")
 
 	go func() {
-		if config.Collection.LoadAverageEnabled {
-			if err := loadAverage.Start(ctx); err != nil {
-				logg.Error("failed to start 'load average' service: " + err.Error())
-				cancel()
-			}
+		if err := collector.Start(ctx); err != nil {
+			logg.Error("failed to start 'service collector' service: " + err.Error())
+			cancel()
 		}
 
 		addrServer := net.JoinHostPort("", portServer)
