@@ -30,21 +30,17 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("MAC OS.CPU:", string(b))
+
 	raw = strings.ReplaceAll(string(b), ", ", " ")
-	fmt.Println("MAC OS.CPU1:", raw)
 	raw = strings.ReplaceAll(raw, "%", "")
-	fmt.Println("MAC OS.CPU2:", raw)
 	raw = strings.TrimPrefix(raw, "CPU usage: ")
-	fmt.Println("MAC OS.CPU3:", raw)
 	n, err := fmt.Sscanf(raw, "%f user %f sys %f idle",
 		&val[0], &val[1], &val[2])
-	fmt.Println("MAC OS.CPU4:", val)
 	if err != nil {
 		return nil, err
 	}
 	if n < countData {
 		return nil, errors.New("data 'load average' not fully read")
 	}
-	return []float64{val[0], val[1], val[3]}, nil
+	return []float64{val[0], val[1], val[2]}, nil
 }
