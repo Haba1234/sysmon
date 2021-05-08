@@ -12,7 +12,7 @@ import (
 func (cp *CPU) DataRequest() ([]float64, error) {
 	const countData = 3 // Кол-во ожидаемых данных по проценту использования CPU (user, sys, idle).
 	val := []float64{0.0, 0.0, 0.0}
-	var raw string
+	//var raw string
 	var err error
 
 	grep := exec.Command("grep", "CPU")
