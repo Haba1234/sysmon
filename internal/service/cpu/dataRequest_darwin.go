@@ -18,28 +18,28 @@ func (cp *CPU) DataRequest() ([]float64, error) {
 	var raw string
 	var err error
 
-	//grep := exec.Command("grep", "CPU")
+	grep := exec.Command("grep", "CPU")
 	top := exec.Command("top", "-l 1")
 
-	b, err := top.Output()
+	/*b, err := top.Output()
 	if err != nil {
 		log.Println("MAC OS.CPU v1 error:")
 		return nil, err
 	}
-	log.Println("MAC OS.CPU v1:", string(b))
+	log.Println("MAC OS.CPU v1:", string(b))*/
 
-	/*	pipe, _ := top.StdoutPipe()
-		defer pipe.Close()
-		grep.Stdin = pipe
-		err = top.Start()
-		if err != nil {
-			return nil, err
-		}
-		b, err := grep.Output()
-		if err != nil {
-			return nil, err
-		}
-		log.Println("MAC OS.CPU:", string(b))*/
+	pipe, _ := top.StdoutPipe()
+	defer pipe.Close()
+	grep.Stdin = pipe
+	err = top.Start()
+	if err != nil {
+		return nil, err
+	}
+	b, err := grep.Output()
+	if err != nil {
+		return nil, err
+	}
+	log.Println("MAC OS.CPU:", string(b))
 	raw = strings.ReplaceAll(string(b), ", ", " ")
 	raw = strings.ReplaceAll(raw, "ni,", "ni ")
 	raw = strings.ReplaceAll(raw, ",", ".")
