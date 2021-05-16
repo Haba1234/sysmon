@@ -10,7 +10,10 @@ run: build
 	$(BIN) -config ./configs/config.toml
 
 test:
-	go test -v -count=100 -race -timeout=1m ./...
+	go test -v -count=10 -race -timeout=5m ./...
+
+test-short:
+	go test -short -v -count=100 -race -timeout=5m ./...
 
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.39.0
@@ -29,4 +32,7 @@ client-build:
 client-run: client-build
 	$(CLIENT_BIN)
 
-.PHONY: build run test lint generate client-build client-run
+client-run2: client-build
+	$(CLIENT_BIN) -n 3 -m 5
+
+.PHONY: build run test test-short lint generate client-run

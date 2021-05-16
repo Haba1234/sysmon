@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	stat "github.com/Haba1234/sysmon/internal/grpc/api"
-	"github.com/Haba1234/sysmon/internal/logger"
-	"github.com/Haba1234/sysmon/internal/service"
+	"github.com/Haba1234/sysmon/internal/sysmon"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,29 +17,38 @@ import (
 //go:generate protoc -I ./api Service.proto --go_out=. --go-grpc_out=.
 
 type Server struct {
+	mu *sync.Mutex
 	stat.UnimplementedStatisticsServer
-	srv     *grpc.Server
-	logg    *logger.Logger
-	serv    *service.Collector
-	bufSize int
+	srv       *grpc.Server
+	logg      sysmon.Logger
+	collector sysmon.Collector
+	bufSize   int
+	maxPeriod time.Duration
 }
 
-func NewServer(logg *logger.Logger, serv *service.Collector, bufSize int) *Server {
+const twoMin = 120
+
+func NewServer(logg sysmon.Logger, collector sysmon.Collector, bufSize int) *Server {
 	return &Server{
-		logg:    logg,
-		bufSize: bufSize,
-		serv:    serv,
+		mu:        &sync.Mutex{},
+		logg:      logg,
+		bufSize:   bufSize,
+		collector: collector,
+		maxPeriod: time.Duration(twoMin) * time.Second,
 	}
 }
 
+// Start запуск сервера gRPC.
 func (s *Server) Start(ctx context.Context, addr string) error {
-	s.logg.Info("gRPC server " + addr + " starting...")
+	s.logg.Info("gRPC server " + addr + " running...")
 	lsn, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 
+	s.mu.Lock()
 	s.srv = grpc.NewServer(grpc.StreamInterceptor(loggingServerInterceptor(s.logg)))
+	s.mu.Unlock()
 	stat.RegisterStatisticsServer(s.srv, s)
 
 	if err := s.srv.Serve(lsn); err != nil {
@@ -49,15 +58,18 @@ func (s *Server) Start(ctx context.Context, addr string) error {
 	return nil
 }
 
-func loggingServerInterceptor(logger *logger.Logger) grpc.StreamServerInterceptor {
+func loggingServerInterceptor(logg sysmon.Logger) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		logger.Info(fmt.Sprintf("method: %s, duration: %s, request: %+v", info.FullMethod, time.Since(time.Now()), srv))
+		logg.Info(fmt.Sprintf("method: %s, duration: %s, request: %+v", info.FullMethod, time.Since(time.Now()), srv))
 		return handler(srv, ss)
 	}
 }
 
+// Stop останов сервера gRPC.
 func (s *Server) Stop(ctx context.Context) error {
-	s.logg.Info("gRPC server stopping...")
+	s.logg.Info("gRPC server stopped")
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.srv.GracefulStop()
 	return nil
 }
@@ -66,30 +78,30 @@ func (s *Server) ListStatistics(req *stat.SubscriptionRequest, stream stat.Stati
 	n := req.GetPeriod().AsDuration()
 	m := int(req.GetDepth())
 	buf := time.Duration(s.bufSize) * time.Second
-	s.logg.Debug(fmt.Sprintf("Client connected - period: %v, depth: %vs, buf: %v", n, m, buf), "grpc")
+	s.logg.Debug(fmt.Sprintf("client connected - period: %v, depth: %vs, buf: %v", n, m, buf), "grpc")
 
 	if n <= 0 {
 		return status.Error(
 			codes.InvalidArgument,
-			"Period must be greater than 0 sec",
+			"period must be greater than 0 sec",
 		)
 	}
-	if n > buf {
+	if n > s.maxPeriod {
 		return status.Error(
 			codes.InvalidArgument,
-			fmt.Sprintf("Period must be less than %v sec", buf),
+			fmt.Sprintf("period must be less than %v sec", s.maxPeriod),
 		)
 	}
 	if m <= 0 {
 		return status.Error(
 			codes.InvalidArgument,
-			"Depth must be greater than 0 sec",
+			"depth must be greater than 0 sec",
 		)
 	}
 	if m > s.bufSize {
 		return status.Error(
 			codes.InvalidArgument,
-			fmt.Sprintf("Depth must be less than %v sec", s.bufSize),
+			fmt.Sprintf("depth must be less than %v sec", s.bufSize),
 		)
 	}
 
@@ -101,10 +113,20 @@ func (s *Server) ListStatistics(req *stat.SubscriptionRequest, stream stat.Stati
 			ticker.Stop()
 			return nil
 		case <-ticker.C:
-			if s.serv.StatsData.Counter >= m { // Данные накопились, можно отправлять.
-				if err := stream.Send(s.getStatistics(m)); err != nil {
-					return err
-				}
+			statusServices := s.collector.GetStatusServices()
+			if statusServices.La.StatusCode != sysmon.ServiceRun && statusServices.CPU.StatusCode != sysmon.ServiceRun {
+				// Нет ни одного запущенного сервиса!
+				return status.Error(
+					codes.Aborted,
+					"all services are stopped",
+				)
+			}
+			if statusServices.La.Counter < m && statusServices.CPU.Counter < m {
+				// Данные еще не готовы для отправки
+				break
+			}
+			if err := stream.Send(s.getStatistics(m)); err != nil {
+				return err
 			}
 		}
 	}
@@ -114,18 +136,32 @@ func (s *Server) getStatistics(m int) *stat.StatisticsResponse {
 	stats := &stat.StatisticsResponse{
 		Status: "OK",
 	}
-	s.serv.ReadStats(m)
+	result := s.collector.GetStats(m)
 
-	data := s.serv.StatsData
 	stats.La = &stat.LoadAverage{
-		OneMin:     data.La[0],
-		FiveMin:    data.La[1],
-		FifteenMin: data.La[2],
+		Status:     statusCodeToStr(result.La.StatusCode),
+		OneMin:     result.La.Data[0],
+		FiveMin:    result.La.Data[1],
+		FifteenMin: result.La.Data[2],
 	}
 	stats.Cp = &stat.CPUAverage{
-		User: data.CPU[0],
-		Sys:  data.CPU[1],
-		Idle: data.CPU[2],
+		Status: statusCodeToStr(result.CPU.StatusCode),
+		User:   result.CPU.Data[0],
+		Sys:    result.CPU.Data[1],
+		Idle:   result.CPU.Data[2],
 	}
 	return stats
+}
+
+func statusCodeToStr(code int) string {
+	switch code {
+	case 1:
+		return "works"
+	case 2:
+		return "stopped"
+	case 3:
+		return "stopped with errors"
+	default:
+		return "unknown"
+	}
 }

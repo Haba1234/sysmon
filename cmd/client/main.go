@@ -65,5 +65,6 @@ func createClient(statClient stat.StatisticsClient, m, n int) {
 		}
 		log.Printf("LoadAverage: %v", stats.GetLa())
 		log.Printf("CPU: %v", stats.GetCp())
+		log.Printf("Services status: %v", stats.GetStatus())
 	}
 }

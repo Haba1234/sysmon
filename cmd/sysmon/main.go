@@ -12,6 +12,9 @@ import (
 	"github.com/Haba1234/sysmon/internal/grpc"
 	"github.com/Haba1234/sysmon/internal/logger"
 	"github.com/Haba1234/sysmon/internal/service"
+	"github.com/Haba1234/sysmon/internal/service/cpu"
+	"github.com/Haba1234/sysmon/internal/service/loadaverage"
+	"github.com/Haba1234/sysmon/internal/sysmon"
 )
 
 var configFile string
@@ -40,7 +43,13 @@ func main() {
 		CPUEnabled:         config.Collection.CPUEnabled,
 		BufSize:            config.Collection.BufSize,
 	}
-	collector := service.NewCollector(logg, settings)
+
+	f := sysmon.Collectors{
+		LoadAvg: loadaverage.DataRequest,
+		CPU:     cpu.DataRequest,
+	}
+
+	collector := service.NewCollector(logg, settings, f)
 
 	server := grpc.NewServer(logg, collector, config.Collection.BufSize)
 
@@ -50,7 +59,7 @@ func main() {
 	go func() {
 		<-ctx.Done()
 
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second*1)
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
@@ -74,5 +83,5 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	logg.Warn("system monitoring stopped.")
+	logg.Warn("system monitoring stopped")
 }

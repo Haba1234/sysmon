@@ -16,15 +16,17 @@ message SubscriptionRequest {
 }
 
 message LoadAverage {
-  string oneMin = 1;
-  string fiveMin = 2;
-  string fifteenMin = 3;
+  string status = 1;
+  string oneMin = 2;
+  string fiveMin = 3;
+  string fifteenMin = 4;
 }
 
 message CPUAverage {
-  string user = 1;
-  string sys = 2;
-  string idle = 3;
+  string status = 1;
+  string user = 2;
+  string sys = 3;
+  string idle = 4;
 }
 
 message StatisticsResponse {

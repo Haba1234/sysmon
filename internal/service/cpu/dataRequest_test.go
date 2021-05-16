@@ -8,8 +8,7 @@ import (
 
 func TestDataRequest(t *testing.T) {
 	t.Run("test func DataRequest 'CPU'", func(t *testing.T) {
-		cpu := NewCPU(5)
-		result, err := cpu.DataRequest()
+		result, err := DataRequest()
 		require.NoError(t, err)
 		for _, val := range result {
 			require.GreaterOrEqual(t, val, 0.0)
