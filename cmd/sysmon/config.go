@@ -26,6 +26,7 @@ type CollectionConf struct {
 	BufSize            int  `config:"bufSize"`     // BufSize - глубина истории собираемых метрик.
 }
 
+// NewConfig конструктор.
 func NewConfig(path string) (*Config, error) {
 	// default values
 	cfg := Config{

@@ -13,6 +13,7 @@ const (
 	total    = 3
 )
 
+// NewCPU конструктор.
 func NewCPU(bufSize int, f sysmon.DataRequestFunc) *sysmon.DataStore {
 	st := make([][]float64, total)
 	st[userMode] = make([]float64, bufSize)

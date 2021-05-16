@@ -13,6 +13,7 @@ const (
 	total      = 3
 )
 
+// NewLoadAverage конструктор.
 func NewLoadAverage(bufSize int, f sysmon.DataRequestFunc) *sysmon.DataStore {
 	st := make([][]float64, total)
 	st[oneMin] = make([]float64, bufSize)

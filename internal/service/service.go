@@ -25,6 +25,7 @@ type Collection struct {
 	BufSize            int  // BufSize - глубина истории собираемых метрик.
 }
 
+// NewCollector конструктор.
 func NewCollector(logg sysmon.Logger, collection Collection, f sysmon.Collectors) sysmon.Collector {
 	col := &collector{
 		logg:       logg,
