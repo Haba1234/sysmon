@@ -43,8 +43,9 @@ func (s *Suite) TestServiceCancel() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	err := collector.Start(ctx)
 	s.NoError(err)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	cancel()
+	time.Sleep(10 * time.Millisecond)
 	s.getStatusEqual(collector, sysmon.ServiceStop)
 
 	collFunc.AssertNotCalled(s.T(), "Execute")
