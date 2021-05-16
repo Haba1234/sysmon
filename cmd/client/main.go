@@ -63,6 +63,7 @@ func createClient(statClient stat.StatisticsClient, m, n int) {
 			log.Println("Поток данных прерван, error: ", err)
 			return
 		}
+
 		log.Printf("LoadAverage: %v", stats.GetLa())
 		log.Printf("CPU: %v", stats.GetCp())
 		log.Printf("Services status: %v", stats.GetStatus())
