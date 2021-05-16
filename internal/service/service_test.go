@@ -66,7 +66,7 @@ func (s *Suite) TestServiceTickAndError() {
 	s.getStatEqual(collector, s.m, 0)
 	s.getStatusEqual(collector, sysmon.ServiceRun)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1200 * time.Millisecond)
 	s.getStatEqual(collector, s.m, 0)
 	s.getStatusEqual(collector, sysmon.ServiceError)
 
@@ -90,7 +90,7 @@ func (s *Suite) TestServiceTickDone() {
 	s.getStatEqual(collector, s.m, 0)
 	s.getStatusEqual(collector, sysmon.ServiceRun)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1200 * time.Millisecond)
 	s.getStatEqual(collector, s.m, 1)
 	s.getStatusEqual(collector, sysmon.ServiceRun)
 
