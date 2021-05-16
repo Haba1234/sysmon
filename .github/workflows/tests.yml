@@ -47,7 +47,7 @@ jobs:
       - name: Generate coverage report
         uses: codecov/codecov-action@v1
         with:
-          file: ./coverage1.txt,./coverage2.txt
+          files: ./coverage1.txt,./coverage2.txt
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
