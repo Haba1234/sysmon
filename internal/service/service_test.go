@@ -17,13 +17,14 @@ type Suite struct {
 	suite.Suite
 	log      *mocks.Logger
 	settings Collection
+	m        int
 }
 
 func (s *Suite) SetupSuite() {
 	s.log = new(mocks.Logger)
 	s.log.On("Info", mock.Anything)
 	s.log.On("Error", mock.Anything).Maybe()
-
+	s.m = 1
 	s.settings = Collection{
 		LoadAverageEnabled: true,
 		CPUEnabled:         true,
@@ -37,23 +38,15 @@ func (s *Suite) TearDownTest() {
 
 func (s *Suite) TestServiceCancel() {
 	defer goleak.VerifyNone(s.T())
-	collFunc := new(mocks.DataRequestFunc)
-	collFunc.On("Execute").Return([]float64{}, nil)
-	f := sysmon.Collectors{
-		LoadAvg: collFunc.Execute,
-		CPU:     collFunc.Execute,
-	}
-
-	collector := NewCollector(s.log, s.settings, f)
+	collector, collFunc := s.createCollector([]float64{}, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	err := collector.Start(ctx)
 	s.NoError(err)
 	time.Sleep(10 * time.Millisecond)
 	cancel()
-	statusServices := collector.GetStatusServices()
-	s.Equal(2, statusServices.La.StatusCode)
-	s.Equal(2, statusServices.CPU.StatusCode)
+	s.getStatusEqual(collector, sysmon.ServiceStop)
+
 	collFunc.AssertNotCalled(s.T(), "Execute")
 }
 
@@ -63,35 +56,19 @@ func (s *Suite) TestServiceTickAndError() {
 	}
 
 	defer goleak.VerifyNone(s.T())
-	collFunc := new(mocks.DataRequestFunc)
-	collFunc.On("Execute").Return([]float64{}, errors.New("dummy error"))
-	f := sysmon.Collectors{
-		LoadAvg: collFunc.Execute,
-		CPU:     collFunc.Execute,
-	}
-	collector := NewCollector(s.log, s.settings, f)
+	collector, collFunc := s.createCollector([]float64{}, errors.New("dummy error"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	err := collector.Start(ctx)
 	s.NoError(err)
 
 	time.Sleep(10 * time.Millisecond)
-	result := collector.GetStats(1)
-	s.Equal(0, result.La.Counter)
-	s.Equal(0, result.CPU.Counter)
-
-	statusServices := collector.GetStatusServices()
-	s.Equal(1, statusServices.La.StatusCode)
-	s.Equal(1, statusServices.CPU.StatusCode)
+	s.getStatEqual(collector, s.m, 0)
+	s.getStatusEqual(collector, sysmon.ServiceRun)
 
 	time.Sleep(1 * time.Second)
-	result = collector.GetStats(1)
-	s.Equal(0, result.La.Counter)
-	s.Equal(0, result.CPU.Counter)
-
-	statusServices = collector.GetStatusServices()
-	s.Equal(3, statusServices.La.StatusCode)
-	s.Equal(3, statusServices.CPU.StatusCode)
+	s.getStatEqual(collector, s.m, 0)
+	s.getStatusEqual(collector, sysmon.ServiceError)
 
 	cancel()
 	collFunc.AssertExpectations(s.T())
@@ -103,35 +80,19 @@ func (s *Suite) TestServiceTickDone() {
 	}
 
 	defer goleak.VerifyNone(s.T())
-	collFunc := new(mocks.DataRequestFunc)
-	collFunc.On("Execute").Return([]float64{1.0, 2.0, 3.0}, nil)
-	f := sysmon.Collectors{
-		LoadAvg: collFunc.Execute,
-		CPU:     collFunc.Execute,
-	}
-	collector := NewCollector(s.log, s.settings, f)
+	collector, collFunc := s.createCollector([]float64{1.0, 2.0, 3.0}, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	err := collector.Start(ctx)
 	s.NoError(err)
 
 	time.Sleep(10 * time.Millisecond)
-	result := collector.GetStats(1)
-	s.Equal(0, result.La.Counter)
-	s.Equal(0, result.CPU.Counter)
-
-	statusServices := collector.GetStatusServices()
-	s.Equal(1, statusServices.La.StatusCode)
-	s.Equal(1, statusServices.CPU.StatusCode)
+	s.getStatEqual(collector, s.m, 0)
+	s.getStatusEqual(collector, sysmon.ServiceRun)
 
 	time.Sleep(1 * time.Second)
-	result = collector.GetStats(1)
-	s.Equal(1, result.La.Counter)
-	s.Equal(1, result.CPU.Counter)
-
-	statusServices = collector.GetStatusServices()
-	s.Equal(1, statusServices.La.StatusCode)
-	s.Equal(1, statusServices.CPU.StatusCode)
+	s.getStatEqual(collector, s.m, 1)
+	s.getStatusEqual(collector, sysmon.ServiceRun)
 
 	cancel()
 	collFunc.AssertExpectations(s.T())
@@ -139,4 +100,26 @@ func (s *Suite) TestServiceTickDone() {
 
 func TestSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
+}
+
+func (s *Suite) createCollector(data []float64, err error) (sysmon.Collector, *mocks.DataRequestFunc) {
+	collFunc := new(mocks.DataRequestFunc)
+	collFunc.On("Execute").Return(data, err)
+	f := sysmon.Collectors{
+		LoadAvg: collFunc.Execute,
+		CPU:     collFunc.Execute,
+	}
+	return NewCollector(s.log, s.settings, f), collFunc
+}
+
+func (s *Suite) getStatEqual(c sysmon.Collector, m, expected int) {
+	result := c.GetStats(m)
+	s.Equal(expected, result.La.Counter)
+	s.Equal(expected, result.CPU.Counter)
+}
+
+func (s *Suite) getStatusEqual(c sysmon.Collector, expected int) {
+	status := c.GetStatusServices()
+	s.Equal(expected, status.La.StatusCode)
+	s.Equal(expected, status.CPU.StatusCode)
 }

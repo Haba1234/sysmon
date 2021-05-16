@@ -139,24 +139,11 @@ func (s *Suite) TestListStatisticsOneTickDone() {
 	stream.On("Context").Return(context.WithTimeout(context.Background(), 1010*time.Millisecond))
 	stream.On("Send", mock.Anything).Return(nil)
 
-	stat := sysmon.StatusServices{
-		La: sysmon.Status{
-			Counter:    1,
-			StatusCode: sysmon.ServiceRun,
-		},
-		CPU: sysmon.Status{
-			Counter:    1,
-			StatusCode: sysmon.ServiceRun,
-		},
-	}
+	stat := s.structureFillStatusServices(1, sysmon.ServiceRun, sysmon.ServiceRun)
 	s.collector.On("GetStatusServices").Return(stat)
 
-	req := &grpc.SubscriptionRequest{
-		Period: durationpb.New(time.Second),
-		Depth:  1,
-	}
-
 	server := NewServer(s.log, s.collector, s.bufSize)
+	req := s.structureFillSubscriptionRequest(1, 1)
 	err := server.ListStatistics(req, stream)
 	s.NoError(err)
 
@@ -171,24 +158,11 @@ func (s *Suite) TestListStatisticsOneTickAborted() {
 	stream := new(mocks.Statistics_ListStatisticsServer)
 	stream.On("Context").Return(context.WithTimeout(context.Background(), 1010*time.Millisecond))
 
-	ss := sysmon.StatusServices{
-		La: sysmon.Status{
-			Counter:    1,
-			StatusCode: sysmon.ServiceStop,
-		},
-		CPU: sysmon.Status{
-			Counter:    1,
-			StatusCode: sysmon.ServiceError,
-		},
-	}
-	s.collector.On("GetStatusServices").Return(ss)
-
-	req := &grpc.SubscriptionRequest{
-		Period: durationpb.New(time.Second),
-		Depth:  1,
-	}
+	stat := s.structureFillStatusServices(1, sysmon.ServiceStop, sysmon.ServiceError)
+	s.collector.On("GetStatusServices").Return(stat)
 
 	server := NewServer(s.log, s.collector, s.bufSize)
+	req := s.structureFillSubscriptionRequest(1, 1)
 	err := server.ListStatistics(req, stream)
 	s.Error(err)
 	stream.AssertExpectations(s.T())
@@ -196,4 +170,24 @@ func (s *Suite) TestListStatisticsOneTickAborted() {
 
 func TestStoreSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
+}
+
+func (s *Suite) structureFillStatusServices(count, codeLA, codeCPU int) sysmon.StatusServices {
+	return sysmon.StatusServices{
+		La: sysmon.Status{
+			Counter:    count,
+			StatusCode: codeLA,
+		},
+		CPU: sysmon.Status{
+			Counter:    count,
+			StatusCode: codeCPU,
+		},
+	}
+}
+
+func (s *Suite) structureFillSubscriptionRequest(period, depth int) *grpc.SubscriptionRequest {
+	return &grpc.SubscriptionRequest{
+		Period: durationpb.New(time.Duration(period) * time.Second),
+		Depth:  int64(depth),
+	}
 }
