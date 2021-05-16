@@ -15,6 +15,9 @@ test:
 test-short:
 	go test -short -v -count=100 -race -timeout=5m ./...
 
+test-integration:
+	go test -tags integration -v -race ./tests/integration/...
+
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.39.0
 
@@ -35,4 +38,4 @@ client-run: client-build
 client-run2: client-build
 	$(CLIENT_BIN) -n 3 -m 5
 
-.PHONY: build run test test-short lint generate client-run
+.PHONY: build run test test-short test-integration lint generate client-run
