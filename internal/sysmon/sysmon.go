@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	ServiceRun   = 1 // Сервис работает.
-	ServiceStop  = 2 // Сервис остановлен.
-	ServiceError = 3 // Сервис в ошибке.
+	ServiceRun   = 1 // ServiceRun сервис работает.
+	ServiceStop  = 2 // ServiceStop сервис остановлен.
+	ServiceError = 3 // ServiceError сервис в ошибке.
 )
 
 // DataStore хранилище статистики системы.

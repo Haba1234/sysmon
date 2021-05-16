@@ -16,6 +16,7 @@ import (
 
 //go:generate protoc -I ./api Service.proto --go_out=. --go-grpc_out=.
 
+// Server структура сервера.
 type Server struct {
 	mu *sync.Mutex
 	stat.UnimplementedStatisticsServer
@@ -28,6 +29,7 @@ type Server struct {
 
 const twoMin = 120
 
+// NewServer конструктор.
 func NewServer(logg sysmon.Logger, collector sysmon.Collector, bufSize int) *Server {
 	return &Server{
 		mu:        &sync.Mutex{},
@@ -74,6 +76,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	return nil
 }
 
+// ListStatistics стримминг данных клиенту.
 func (s *Server) ListStatistics(req *stat.SubscriptionRequest, stream stat.Statistics_ListStatisticsServer) error {
 	n := req.GetPeriod().AsDuration()
 	m := int(req.GetDepth())
