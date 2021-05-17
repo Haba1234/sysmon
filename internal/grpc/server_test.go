@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ type Suite struct {
 	suite.Suite
 	log       *mocks.Logger
 	collector *mocks.Collector
+	stream    *mocks.Statistics_ListStatisticsServer
 	bufSize   int
 	la        []string
 	cpu       []string
@@ -33,7 +35,10 @@ func (s *Suite) SetupSuite() {
 	s.m = 1
 	s.la = []string{"1.0", "2.0", "3.0"}
 	s.cpu = []string{"1.0", "2.0", "97.0"}
+	s.bufSize = 10
+}
 
+func (s *Suite) SetupTest() {
 	s.collector = new(mocks.Collector)
 	s.collector.On("GetStats", s.m).Return(sysmon.StatisticsData{
 		La: sysmon.OutputData{
@@ -47,13 +52,13 @@ func (s *Suite) SetupSuite() {
 			StatusCode: sysmon.ServiceStop,
 		},
 	}).Maybe()
-
-	s.bufSize = 10
+	s.stream = new(mocks.Statistics_ListStatisticsServer)
 }
 
 func (s *Suite) TearDownTest() {
 	s.log.AssertExpectations(s.T())
 	s.collector.AssertExpectations(s.T())
+	s.stream.AssertExpectations(s.T())
 }
 
 func (s *Suite) TestStartStop() {
@@ -112,7 +117,6 @@ func (s *Suite) TestListStatisticsConditions() {
 			err:    "period must be greater than 0 sec",
 		},
 	}
-	stream := new(mocks.Statistics_ListStatisticsServer)
 
 	for _, tt := range tests {
 		tt := tt
@@ -123,49 +127,62 @@ func (s *Suite) TestListStatisticsConditions() {
 				Depth:  tt.depth,
 			}
 
-			stream.On("Context").Return(context.WithTimeout(context.Background(), time.Millisecond))
-			err := server.ListStatistics(req, stream)
+			s.stream.On("Context").Return(context.WithTimeout(context.Background(), time.Millisecond))
+			err := server.ListStatistics(req, s.stream)
 			s.Contains(err.Error(), tt.err)
 		})
 	}
-	stream.AssertExpectations(s.T())
 }
 
 func (s *Suite) TestListStatisticsOneTickDone() {
 	if testing.Short() {
 		s.T().Skip("skipping test in short mode.")
 	}
-	stream := new(mocks.Statistics_ListStatisticsServer)
-	stream.On("Context").Return(context.WithTimeout(context.Background(), 1010*time.Millisecond))
-	stream.On("Send", mock.Anything).Return(nil)
+
+	s.stream.On("Context").Return(context.WithTimeout(context.Background(), 1100*time.Millisecond))
+	s.stream.On("Send", mock.Anything).Return(nil)
 
 	stat := s.structureFillStatusServices(1, sysmon.ServiceRun, sysmon.ServiceRun)
 	s.collector.On("GetStatusServices").Return(stat)
 
 	server := NewServer(s.log, s.collector, s.bufSize)
 	req := s.structureFillSubscriptionRequest(1, 1)
-	err := server.ListStatistics(req, stream)
+	err := server.ListStatistics(req, s.stream)
 	s.NoError(err)
-
-	stream.AssertExpectations(s.T())
 }
 
 func (s *Suite) TestListStatisticsOneTickAborted() {
-	s.T().Skip()
 	if testing.Short() {
 		s.T().Skip("skipping test in short mode.")
 	}
-	stream := new(mocks.Statistics_ListStatisticsServer)
-	stream.On("Context").Return(context.WithTimeout(context.Background(), 1010*time.Millisecond))
+
+	s.stream.On("Context").Return(context.WithTimeout(context.Background(), 1100*time.Millisecond))
 
 	stat := s.structureFillStatusServices(1, sysmon.ServiceStop, sysmon.ServiceError)
 	s.collector.On("GetStatusServices").Return(stat)
 
 	server := NewServer(s.log, s.collector, s.bufSize)
 	req := s.structureFillSubscriptionRequest(1, 1)
-	err := server.ListStatistics(req, stream)
+	err := server.ListStatistics(req, s.stream)
 	s.Error(err)
-	stream.AssertExpectations(s.T())
+}
+
+func (s *Suite) TestListStatisticsSendError() {
+	if testing.Short() {
+		s.T().Skip("skipping test in short mode.")
+	}
+	errDummy := errors.New("dummy error")
+
+	s.stream.On("Context").Return(context.WithTimeout(context.Background(), 1100*time.Millisecond))
+	s.stream.On("Send", mock.Anything).Return(errDummy)
+
+	stat := s.structureFillStatusServices(1, sysmon.ServiceRun, sysmon.ServiceRun)
+	s.collector.On("GetStatusServices").Return(stat)
+
+	server := NewServer(s.log, s.collector, s.bufSize)
+	req := s.structureFillSubscriptionRequest(1, 1)
+	err := server.ListStatistics(req, s.stream)
+	s.ErrorIs(err, errDummy)
 }
 
 func TestStoreSuite(t *testing.T) {
