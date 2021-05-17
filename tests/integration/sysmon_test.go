@@ -25,6 +25,9 @@ type Suite struct {
 	conn   *grpc.ClientConn
 	cmd    *exec.Cmd
 	port   string
+	config string
+	m      int
+	n      int
 }
 
 func (s *Suite) SetupSuite() {
@@ -32,14 +35,29 @@ func (s *Suite) SetupSuite() {
 
 	s.port = os.Getenv("SERVER_PORT")
 	if s.port == "" {
-		s.port = "8080"
+		s.port = "9000"
+	}
+
+	s.config = os.Getenv("SERVER_PATCH_CONFIG")
+	if s.config == "" {
+		s.config = "./configs/config.toml"
+	}
+
+	s.n, err = strconv.Atoi(os.Getenv("CLIENT_PERIOD"))
+	if err != nil {
+		s.n = 1
+	}
+
+	s.m, err = strconv.Atoi(os.Getenv("CLIENT_DEPTH"))
+	if err != nil {
+		s.m = 1
 	}
 
 	err = buildServer()
 	s.NoError(err)
 
 	s.ctx, s.cancel = context.WithCancel(context.Background())
-	s.cmd = exec.CommandContext(s.ctx, "./bin/sysmon")
+	s.cmd = exec.CommandContext(s.ctx, "./bin/sysmon", "-config", s.config, "-port", s.port)
 	s.cmd.Dir = "../.."
 
 	err = s.cmd.Start()
@@ -51,7 +69,7 @@ func (s *Suite) SetupSuite() {
 
 func (s *Suite) TestClientConnectServer() {
 	client := stat.NewStatisticsClient(s.conn)
-	stream := s.runClient(client, 1, 1)
+	stream := s.runClient(client, s.m, s.n)
 	stats, err := stream.Recv()
 	s.NoError(err)
 	s.Equal("works", stats.La.GetStatus())
@@ -60,7 +78,7 @@ func (s *Suite) TestClientConnectServer() {
 
 func (s *Suite) TestLoadCPU() {
 	client := stat.NewStatisticsClient(s.conn)
-	stream := s.runClient(client, 1, 1)
+	stream := s.runClient(client, s.m, s.n)
 	stats, err := stream.Recv()
 	s.NoError(err)
 	loadCPUStart, _ := strconv.ParseFloat(stats.Cp.GetUser(), 64)
@@ -81,7 +99,7 @@ func (s *Suite) TestManyClients() {
 		go func(m int) {
 			defer wg.Done()
 			client := stat.NewStatisticsClient(s.conn)
-			stream := s.runClient(client, m, 1)
+			stream := s.runClient(client, m, s.n)
 			_, err := stream.Recv()
 			s.NoError(err)
 		}(i)
@@ -90,11 +108,10 @@ func (s *Suite) TestManyClients() {
 }
 
 func (s *Suite) TearDownSuite() {
-	s.conn.Close()
+	_ = s.conn.Close()
 	s.cancel()
 	_ = s.cmd.Wait()
-	err := os.Remove("../../bin/sysmon")
-	s.NoError(err)
+	_ = os.Remove("../../bin/sysmon")
 }
 
 func TestStoreSuite(t *testing.T) {
